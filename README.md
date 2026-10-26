@@ -11,11 +11,11 @@ alert. With Wi-Fi set up, new messages can also be forwarded to your own Telegra
 The interface, the setup page, forwarded messages and the voice prompts are available in
 **English and Simplified Chinese**.
 
-<p align="center">
-  <a href="docs/demo.mp4"><img src="docs/demo.webp" width="300" alt="The device playing test alerts for QQ, WeChat and Messages"></a>
-  <br>
-  Test alerts with the Chinese interface. <a href="docs/demo.mp4">Watch with sound</a>.
-</p>
+
+
+https://github.com/user-attachments/assets/2c8bdd9c-9177-4dc3-9fe9-2b273651dbca
+
+Test alerts with the Chinese interface.
 
 ## Hardware
 
