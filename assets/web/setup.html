@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Passport Alert</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--text:#1c1c1e;--dim:#6c6c70;--line:#e5e5ea;--accent:#07c160;--accent-text:#fff;--danger:#d70015;--warn:#b25000;--field:#f2f2f7}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--text:#f2f2f7;--dim:#98989f;--line:#38383a;--accent:#30d158;--accent-text:#000;--danger:#ff453a;--warn:#ff9f0a;--field:#2c2c2e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:560px;margin:0 auto;padding:16px 16px 40px}
+h1{font-size:26px;margin:8px 4px 2px}
+.sub{color:var(--dim);margin:0 4px 16px;font-size:14px}
+section{background:var(--card);border-radius:14px;padding:16px;margin:0 0 16px}
+h2{font-size:19px;margin:0 0 10px}
+h3{font-size:14px;font-weight:600;color:var(--dim);margin:16px 0 6px}
+.status{padding:10px 12px;border-radius:10px;background:var(--field);font-size:15px;margin-bottom:6px}
+.status.ok{color:var(--accent)}.status.bad{color:var(--danger)}.status.busy{color:var(--warn)}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line);min-height:44px}
+li:last-child{border-bottom:0}
+li .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+li .meta{color:var(--dim);font-size:13px;white-space:nowrap}
+li.pick{cursor:pointer}
+li.empty{color:var(--dim);justify-content:center}
+label{display:block;margin:10px 0 4px;font-size:14px;color:var(--dim)}
+input[type=text],input[type=password]{display:block;width:100%;font:inherit;color:var(--text);background:var(--field);border:1px solid transparent;border-radius:10px;padding:11px 12px;margin-top:4px;outline:none}
+input[type=text]:focus,input[type=password]:focus{border-color:var(--accent)}
+.check{display:flex;align-items:center;gap:10px;color:var(--text);font-size:16px;margin:8px 0}
+.check input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.checks{display:flex;flex-wrap:wrap;gap:4px 18px}
+button{font:inherit;font-size:16px;border:0;border-radius:10px;padding:11px 14px;margin:10px 8px 0 0;background:var(--field);color:var(--text);cursor:pointer;min-height:44px}
+button.primary{background:var(--accent);color:var(--accent-text);font-weight:600}
+button.danger{color:var(--danger)}
+button.small{padding:6px 10px;margin:0;min-height:36px;font-size:14px}
+button.wide{display:block;width:100%;margin:4px 0 0}
+button:disabled{opacity:.5}
+.msg{min-height:1.4em;margin:8px 0 0;font-size:14px}
+.msg.ok{color:var(--accent)}.msg.bad{color:var(--danger)}.msg.busy{color:var(--warn)}
+.hint{color:var(--dim);font-size:13px;margin:6px 0 0}
+ol{margin:0 0 10px;padding-left:22px;color:var(--dim);font-size:14px}
+ol li{display:list-item;border:0;padding:2px 0;min-height:0}
+details{margin-top:14px}
+[hidden]{display:none!important}
+.picked{font-size:17px;font-weight:600;margin:12px 0 0}
+summary{color:var(--dim);font-size:14px;cursor:pointer}
+.bars{font-size:12px;letter-spacing:-1px;color:var(--dim)}
+footer{color:var(--dim);font-size:13px;text-align:center;margin-top:12px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.langs{display:flex;background:var(--card);border-radius:10px;padding:3px;margin-top:10px;flex:none}
+.langs button{margin:0;min-height:32px;padding:4px 10px;font-size:14px;background:transparent}
+.langs button.on{background:var(--accent);color:var(--accent-text);font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<div class="top">
+  <h1>Passport Alert</h1>
+  <div class="langs"><button id="langEn" lang="en">English</button><button id="langZh" lang="zh">中文</button></div>
+</div>
+<p class="sub" id="sum" data-t="loading"></p>
+
+<section>
+  <h2>Wi-Fi</h2>
+  <div class="status" id="wst" data-t="reading"></div>
+  <h3 id="savedTitle"></h3>
+  <ul id="saved"></ul>
+  <button id="scan" data-t="scan"></button>
+  <button id="manual" data-t="manual"></button>
+  <ul id="aps"></ul>
+  <!-- 表单平时收起:选了网络、点了“改密码”或“手动输入”才展开,键盘也只在这时弹出。 -->
+  <div id="wform" hidden>
+    <p class="picked" id="picked"></p>
+    <label id="ssidLabel"><span data-t="ssid"></span><input type="text" id="ssid" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="32"></label>
+    <label><span data-t="password"></span><input type="password" id="pw" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="64" data-t-placeholder="pwPlaceholder"></label>
+    <div class="check"><input type="checkbox" id="showpw"><span data-t="showPw"></span></div>
+    <button id="save" class="primary" data-t="saveConnect"></button>
+    <button id="cancel" data-t="cancel"></button>
+  </div>
+  <p class="msg" id="wmsg"></p>
+</section>
+
+<section>
+  <h2 data-t="tgTitle"></h2>
+  <ol>
+    <li data-t-html="tgStep1"></li>
+    <li data-t="tgStep2"></li>
+    <li data-t="tgStep3"></li>
+  </ol>
+  <div class="status" id="tst" data-t="reading"></div>
+  <div id="tokenForm" hidden>
+    <label><span data-t="botToken"></span><input type="text" id="token" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="123456789:AAH…"></label>
+    <button id="saveToken" class="primary" data-t="verifySave"></button>
+  </div>
+  <button id="changeToken" data-t="changeToken" hidden></button>
+  <button id="bind" data-t="bindChat"></button>
+  <p class="msg" id="tmsg"></p>
+  <h3 data-t="fwdTitle"></h3>
+  <div class="checks" id="fwd"></div>
+  <div class="check"><input type="checkbox" id="body"><span data-t="fwdBody"></span></div>
+  <p class="hint" data-t="fwdHint"></p>
+  <button id="test" data-t="sendTest"></button>
+  <button id="clearTg" class="danger" data-t="clearTg"></button>
+  <details>
+    <summary data-t="advanced"></summary>
+    <label><span data-t="chatId"></span><input type="text" id="chatId" inputmode="numeric" autocomplete="off"></label>
+    <button id="saveChat" class="small" data-t="saveChatId"></button>
+    <label><span data-t="apiUrl"></span><input type="text" id="api" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://api.telegram.org"></label>
+    <button id="saveApi" class="small" data-t="saveApi"></button>
+    <p class="hint" data-t="apiHint"></p>
+  </details>
+</section>
+
+<section>
+  <h2 data-t="alertTitle"></h2>
+  <p class="hint" data-t="alertHint"></p>
+  <div class="checks" id="alert"></div>
+</section>
+
+<button id="done" class="primary wide" data-t="done"></button>
+<footer data-t="footer"></footer>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+let savedKey = "";
+let tokenEditing = false;
+
+const T = {
+  en: {
+    loading: "Reading the device settings…",
+    reading: "Reading…",
+    savedTitle: (n, max) => `Saved networks (${n}/${max})`,
+    scan: "Scan for networks",
+    manual: "Enter a network name",
+    ssid: "Network name",
+    password: "Password",
+    pwPlaceholder: "Leave empty for open networks",
+    showPw: "Show password",
+    saveConnect: "Save and connect",
+    cancel: "Cancel",
+    tgTitle: "Telegram forwarding",
+    tgStep1: "In Telegram, open <b>@BotFather</b>, send /newbot to create a bot and copy the token it gives you.",
+    tgStep2: "Paste it below and tap “Verify and save” (the device must be on Wi-Fi).",
+    tgStep3: "Send your bot a message in Telegram, such as /start, then tap “Link chat”.",
+    botToken: "Bot token",
+    verifySave: "Verify and save",
+    changeToken: "Change token",
+    bindChat: "Link chat",
+    fwdTitle: "Forward these apps",
+    fwdBody: "Include the message text",
+    fwdHint: "Without the text, only “who sent a new message” is forwarded. Telegram's own messages are never forwarded.",
+    sendTest: "Send a test message",
+    clearTg: "Clear Telegram settings",
+    advanced: "Enter a chat ID or change the API address",
+    chatId: "Chat ID",
+    saveChatId: "Save chat ID",
+    apiUrl: "API address",
+    saveApi: "Save API address",
+    apiHint: "If Telegram is blocked where you are, enter your own reverse proxy, for example a Cloudflare Worker, with the same paths as the official API (…/bot<token>/sendMessage). Leave empty for the official address. Saving checks it with the stored token.",
+    alertTitle: "Alerts on the device",
+    alertHint: "New messages from the checked apps flash the screen and play a voice alert.",
+    done: "Done, close setup",
+    footer: "Settings are stored on the device and survive power loss.",
+    failed: "Failed",
+    lostLink: "Lost the connection to the device. Make sure your phone is still on the Passport hotspot.",
+    noDevice: "Cannot reach the device. Make sure your phone is on the Passport hotspot.",
+    wifiOn: (ssid, ip) => `Connected to ${ssid}` + (ip ? ` (${ip})` : ""),
+    wifiConnecting: ssid => `Connecting to ${ssid}…`,
+    wifiFailed: (ssid, why) => `Cannot connect to ${ssid}: ${why || "unknown reason"}. Will retry automatically.`,
+    wifiNone: "No saved networks yet",
+    none: "None yet",
+    changePw: "Edit",
+    del: "Delete",
+    deleting: "Deleting…",
+    deleted: ssid => `Deleted ${ssid}`,
+    connected: "Connected",
+    open: "Open",
+    tgNone: "No bot set up yet",
+    tgNoChat: (bot, user) => `Bot ${bot} (@${user}) saved, no chat linked yet`,
+    tgFailing: (chat, err) => `Forwarding to ${chat}. Last attempt failed: ${err}`,
+    tgOk: (chat, user, sent) => `Forwarding to ${chat} with @${user}` + (sent ? `. ${sent} sent` : ""),
+    needWifi: "The device must be on Wi-Fi first",
+    summary: (wifi, tg) => (wifi ? "Wi-Fi connected" : "Wi-Fi not connected") + ". " +
+      (tg ? "Telegram forwarding on." : "Telegram not set up."),
+    optionsSaved: "Forwarding options saved",
+    scanning: "Scanning, about 3 seconds…",
+    pickNet: "Tap a network, then enter its password",
+    noNets: "No networks found nearby",
+    saved: "Saved",
+    needSsid: "Enter a network name",
+    pwShort: "Wi-Fi passwords have at least 8 characters",
+    saving: "Saving…",
+    savedConnecting: ssid => `Saved, connecting to ${ssid}. The hotspot may drop for a moment; your phone reconnects by itself.`,
+    verifying: "Checking with Telegram, up to 30 seconds…",
+    tokenOk: (bot, user) => `Token works: ${bot} (@${user}). Next, send it a message, then tap “Link chat”.`,
+    apiChecking: "Checking the token at the new address, up to 30 seconds…",
+    apiOk: "The API address works and is saved.",
+    finding: "Looking for your message to the bot…",
+    bound: chat => `Linked to ${chat}. A confirmation should have arrived in Telegram.`,
+    chatSaved: "Chat ID saved. Tap “Send a test message” to try it.",
+    sending: "Sending…",
+    sent: "Sent, check Telegram.",
+    clearConfirm: "Clear the bot token and the linked chat?",
+    clearing: "Clearing…",
+    cleared: "Cleared",
+    finished: "Setup finished",
+    finishedSub: "The device has closed its setup hotspot. You can close this page.",
+  },
+  zh: {
+    loading: "正在读取板子的设置…",
+    reading: "读取中…",
+    savedTitle: (n, max) => `已保存的网络（${n}/${max}）`,
+    scan: "扫描附近的网络",
+    manual: "手动输入网络名称",
+    ssid: "网络名称",
+    password: "密码",
+    pwPlaceholder: "开放网络留空",
+    showPw: "显示密码",
+    saveConnect: "保存并连接",
+    cancel: "取消",
+    tgTitle: "Telegram 转发",
+    tgStep1: "在 Telegram 里找 <b>@BotFather</b>，发送 /newbot 创建一个机器人，复制它给的 Token。",
+    tgStep2: "粘贴到下面，点“验证并保存”（板子要先连上 Wi-Fi）。",
+    tgStep3: "在 Telegram 里给你的机器人发一句话，比如 /start，再点“绑定聊天”。",
+    botToken: "机器人 Token",
+    verifySave: "验证并保存",
+    changeToken: "更换 Token",
+    bindChat: "绑定聊天",
+    fwdTitle: "转发哪些应用",
+    fwdBody: "转发消息正文",
+    fwdHint: "关掉正文后，只转发“谁发来新消息”。Telegram 自己的消息不转发。",
+    sendTest: "发送测试消息",
+    clearTg: "清除 Telegram 设置",
+    advanced: "手动填聊天 ID、修改 API 地址",
+    chatId: "聊天 ID",
+    saveChatId: "保存聊天 ID",
+    apiUrl: "API 地址",
+    saveApi: "保存 API 地址",
+    apiHint: "直连不了 Telegram 时（例如在国内），可以填自己的反向代理，比如 Cloudflare Worker，路径与官方相同（…/bot<Token>/sendMessage）。留空就是官方地址。保存时会用已存的 Token 验证一次。",
+    alertTitle: "板子提醒",
+    alertHint: "勾选的应用来新消息时，板子闪屏并用人声播报。",
+    done: "完成，退出设置",
+    footer: "设置保存在板子上，断电也不会丢。",
+    failed: "失败",
+    lostLink: "和板子的连接断了，请确认手机还连着 Passport 热点",
+    noDevice: "连不上板子：请确认手机连着 Passport 热点",
+    wifiOn: (ssid, ip) => `已连上 ${ssid}` + (ip ? `（${ip}）` : ""),
+    wifiConnecting: ssid => `正在连接 ${ssid}…`,
+    wifiFailed: (ssid, why) => `连不上 ${ssid}：${why || "原因未知"}，稍后会自动重试`,
+    wifiNone: "还没有保存的网络",
+    none: "还没有",
+    changePw: "改密码",
+    del: "删除",
+    deleting: "正在删除…",
+    deleted: ssid => `已删除 ${ssid}`,
+    connected: "已连接",
+    open: "开放",
+    tgNone: "还没设置机器人",
+    tgNoChat: (bot, user) => `机器人 ${bot}（@${user}）已保存，还没绑定聊天`,
+    tgFailing: (chat, err) => `转发到 ${chat}，最近一次失败：${err}`,
+    tgOk: (chat, user, sent) => `用 @${user} 转发到 ${chat}` + (sent ? `，已转发 ${sent} 条` : ""),
+    needWifi: "板子要先连上 Wi-Fi",
+    summary: (wifi, tg) => (wifi ? "Wi-Fi 已连上" : "Wi-Fi 未连上") + "，" +
+      (tg ? "Telegram 转发已开。" : "Telegram 未设置。"),
+    optionsSaved: "已保存转发选项",
+    scanning: "正在扫描，大约 3 秒…",
+    pickNet: "点一个网络，再填密码",
+    noNets: "附近没有找到网络",
+    saved: "已保存",
+    needSsid: "请填网络名称",
+    pwShort: "Wi-Fi 密码至少 8 位",
+    saving: "正在保存…",
+    savedConnecting: ssid => `已保存，正在连接 ${ssid}。连上后热点可能会短暂断开，手机会自动重连。`,
+    verifying: "正在向 Telegram 验证，最多 30 秒…",
+    tokenOk: (bot, user) => `Token 有效：${bot}（@${user}）。下一步：给它发一句话，然后点“绑定聊天”。`,
+    apiChecking: "正在用新地址验证 Token，最多 30 秒…",
+    apiOk: "API 地址可用，已保存。",
+    finding: "正在查找你发给机器人的消息…",
+    bound: chat => `已绑定 ${chat}，Telegram 里应该收到了一条确认消息。`,
+    chatSaved: "已保存聊天 ID，可以点“发送测试消息”试一下。",
+    sending: "正在发送…",
+    sent: "已发送，请看 Telegram。",
+    clearConfirm: "清除机器人 Token 和绑定的聊天？",
+    clearing: "正在清除…",
+    cleared: "已清除",
+    finished: "设置完成",
+    finishedSub: "板子已关闭设置热点，可以关掉这个页面了。",
+  },
+};
+let lang = (navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en";
+let langFromDevice = false;
+const t = (key, ...args) => {
+  const v = T[lang][key];
+  return typeof v === "function" ? v(...args) : v;
+};
+
+function applyLang() {
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+  for (const el of document.querySelectorAll("[data-t]")) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll("[data-t-html]")) el.innerHTML = t(el.dataset.tHtml);
+  for (const el of document.querySelectorAll("[data-t-placeholder]")) el.placeholder = t(el.dataset.tPlaceholder);
+  $("langEn").classList.toggle("on", lang === "en");
+  $("langZh").classList.toggle("on", lang === "zh");
+  savedKey = "";
+  // 应用名随语言变:复选框下次刷新时重建。
+  $("fwd").replaceChildren();
+  $("alert").replaceChildren();
+}
+
+// 手机连上热点后自动弹出的网页会自动聚焦第一个输入框,键盘随之弹出,热点每次重连还会再来一遍。
+// 所以输入框平时是只读的(聚焦了也不弹键盘),手指按到输入框或它的标签时才解除,离开后恢复只读。
+const textInputs = () => [...document.querySelectorAll("input[type=text],input[type=password]")];
+function unlockFromTouch(e) {
+  const label = e.target.closest("label");
+  const input = e.target.closest("input") || (label && label.querySelector("input"));
+  if (input && input.readOnly) input.readOnly = false;
+}
+document.addEventListener("pointerdown", unlockFromTouch, true);
+document.addEventListener("touchstart", unlockFromTouch, { capture: true, passive: true });
+for (const input of textInputs()) {
+  input.readOnly = true;
+  input.addEventListener("blur", () => { input.readOnly = true; });
+}
+// 用户点了按钮、确实要输入时才主动聚焦。
+function focusField(input) {
+  input.readOnly = false;
+  input.focus();
+}
+let apps = [];
+
+async function call(path, body) {
+  const opts = body === undefined ? {} :
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+function msg(el, text, kind) {
+  el.textContent = text || "";
+  el.className = "msg" + (kind ? " " + kind : "");
+}
+
+function status(el, text, kind) {
+  el.textContent = text;
+  el.className = "status" + (kind ? " " + kind : "");
+}
+
+// 按钮在请求期间禁用,显示进度,结束后恢复。
+async function run(btn, out, busyText, fn) {
+  btn.disabled = true;
+  msg(out, busyText, "busy");
+  try {
+    const r = await fn();
+    if (r && r.ok === false) msg(out, r.error || t("failed"), "bad");
+    return r;
+  } catch (e) {
+    msg(out, t("lostLink"), "bad");
+  } finally {
+    btn.disabled = false;
+    refresh();
+  }
+}
+
+function bars(rssi) {
+  const n = rssi >= -55 ? 4 : rssi >= -67 ? 3 : rssi >= -78 ? 2 : 1;
+  return "▂▄▆█".slice(0, n);
+}
+
+function item(name, meta, button) {
+  const li = document.createElement("li");
+  const n = document.createElement("span");
+  n.className = "name";
+  n.textContent = name;
+  li.appendChild(n);
+  if (meta) {
+    const m = document.createElement("span");
+    m.className = "meta";
+    m.textContent = meta;
+    li.appendChild(m);
+  }
+  if (button) li.appendChild(button);
+  return li;
+}
+
+function empty(text) {
+  const li = document.createElement("li");
+  li.className = "empty";
+  li.textContent = text;
+  return li;
+}
+
+// 展开添加网络的表单。ssid 为 null 表示手动输入网络名称。
+function openForm(ssid) {
+  const manual = ssid === null;
+  $("wform").hidden = false;
+  $("ssidLabel").hidden = !manual;
+  $("picked").hidden = manual;
+  $("picked").textContent = manual ? "" : ssid;
+  $("ssid").value = manual ? "" : ssid;
+  $("pw").value = "";
+  focusField(manual ? $("ssid") : $("pw"));
+}
+
+function closeForm() {
+  $("wform").hidden = true;
+  $("pw").value = "";
+  if (document.activeElement) document.activeElement.blur();
+}
+
+function renderWifi(w) {
+  const s = $("wst");
+  if (w.state === "connected") status(s, t("wifiOn", w.ssid, w.ip), "ok");
+  else if (w.state === "connecting") status(s, t("wifiConnecting", w.ssid), "busy");
+  else if (w.state === "failed") status(s, t("wifiFailed", w.ssid, w.error), "bad");
+  else status(s, t("wifiNone"), "");
+
+  $("savedTitle").textContent = t("savedTitle", w.saved.length, w.max);
+  // 列表没变就不重建,免得每 3 秒刷新时打断点击。
+  const key = JSON.stringify([w.saved, w.ssid, w.state]);
+  if (key === savedKey) return;
+  savedKey = key;
+  const ul = $("saved");
+  ul.replaceChildren();
+  if (!w.saved.length) ul.appendChild(empty(t("none")));
+  for (const n of w.saved) {
+    const edit = document.createElement("button");
+    edit.className = "small";
+    edit.textContent = t("changePw");
+    edit.onclick = () => openForm(n.ssid);
+    const del = document.createElement("button");
+    del.className = "small danger";
+    del.textContent = t("del");
+    del.onclick = () => run(del, $("wmsg"), t("deleting"), async () => {
+      const r = await call("/api/wifi/delete", { ssid: n.ssid });
+      if (r.ok) msg($("wmsg"), t("deleted", n.ssid), "ok");
+      return r;
+    });
+    const li = item(n.ssid, n.ssid === w.ssid && w.state === "connected" ? t("connected") : (n.open ? t("open") : ""), edit);
+    li.appendChild(del);
+    ul.appendChild(li);
+  }
+}
+
+function checkboxes(container, indices, checked, onchange) {
+  container.replaceChildren();
+  for (const i of indices) {
+    const wrap = document.createElement("label");
+    wrap.className = "check";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.value = i;
+    box.checked = checked.includes(i);
+    box.onchange = onchange;
+    const text = document.createElement("span");
+    text.textContent = apps[i];
+    wrap.append(box, text);
+    container.appendChild(wrap);
+  }
+}
+
+function checkedApps(container) {
+  return [...container.querySelectorAll("input:checked")].map(b => Number(b.value));
+}
+
+function renderTg(tg, online) {
+  const s = $("tst");
+  if (!tg.token) status(s, t("tgNone"), "");
+  else if (!tg.chat_id) status(s, t("tgNoChat", tg.bot, tg.user), "busy");
+  else if (tg.error) status(s, t("tgFailing", tg.chat, tg.error), "bad");
+  else status(s, t("tgOk", tg.chat, tg.user, tg.sent), "ok");
+  const editing = tokenEditing || !tg.token;
+  $("tokenForm").hidden = !editing;
+  $("changeToken").hidden = editing;
+  if (document.activeElement !== $("api")) $("api").value = tg.api === "https://api.telegram.org" ? "" : tg.api;
+  if (document.activeElement !== $("chatId") && !$("chatId").value) $("chatId").value = tg.chat_id;
+  $("body").checked = tg.body;
+  $("bind").disabled = !tg.token;
+  $("test").disabled = !tg.chat_id;
+  $("saveToken").title = online ? "" : t("needWifi");
+  $("saveApi").disabled = !tg.token;
+}
+
+function render(st) {
+  // 第一次读到时跟随板子的语言;之后以网页上的选择为准(选择会存到板子上)。
+  if (!langFromDevice && st.lang && T[st.lang]) {
+    langFromDevice = true;
+    if (st.lang !== lang) {
+      lang = st.lang;
+      applyLang();
+    }
+  }
+  if (st.apps) apps = st.apps;
+  renderWifi(st.wifi);
+  renderTg(st.tg, st.wifi.state === "connected");
+  // 复选框只在第一次(或换了语言后)重建,避免打断点击。
+  if (!$("fwd").childElementCount) {
+    checkboxes($("fwd"), st.tg.fwd_allowed, st.tg.fwd, saveOptions);
+    checkboxes($("alert"), apps.map((_, i) => i), st.alert, saveAlert);
+  }
+  const online = st.wifi.state === "connected";
+  const tgReady = st.tg.token && st.tg.chat_id;
+  $("sum").textContent = t("summary", online, tgReady);
+}
+
+async function refresh() {
+  try {
+    render(await call("/api/state"));
+  } catch (e) {
+    $("sum").textContent = t("noDevice");
+  }
+}
+
+async function setLang(code) {
+  if (code === lang) return;
+  lang = code;
+  langFromDevice = true;
+  applyLang();
+  try { await call("/api/lang", { lang: code }); } catch (e) {}
+  refresh();
+}
+$("langEn").onclick = () => setLang("en");
+$("langZh").onclick = () => setLang("zh");
+
+async function saveOptions() {
+  const r = await call("/api/tg/options", { body: $("body").checked, fwd: checkedApps($("fwd")) });
+  msg($("tmsg"), r.ok ? t("optionsSaved") : r.error, r.ok ? "ok" : "bad");
+}
+
+async function saveAlert() {
+  const r = await call("/api/alert", { apps: checkedApps($("alert")) });
+  if (!r.ok) alert(r.error);
+}
+
+$("showpw").onchange = () => { $("pw").type = $("showpw").checked ? "text" : "password"; };
+
+$("scan").onclick = () => run($("scan"), $("wmsg"), t("scanning"), async () => {
+  const r = await call("/api/scan");
+  const ul = $("aps");
+  ul.replaceChildren();
+  if (!r.ok) return r;
+  msg($("wmsg"), t("pickNet"), "");
+  if (!r.aps.length) ul.appendChild(empty(t("noNets")));
+  for (const ap of r.aps) {
+    const li = item(ap.ssid, (ap.saved ? t("saved") + "  " : "") + (ap.secure ? "🔒 " : "") + bars(ap.rssi));
+    li.classList.add("pick");
+    li.onclick = () => openForm(ap.ssid);
+    ul.appendChild(li);
+  }
+  return r;
+});
+
+$("manual").onclick = () => openForm(null);
+$("cancel").onclick = () => { closeForm(); msg($("wmsg"), "", ""); };
+
+$("save").onclick = () => {
+  const ssid = $("ssid").value;
+  const password = $("pw").value;
+  if (!ssid) return msg($("wmsg"), t("needSsid"), "bad");
+  if (password && password.length < 8) return msg($("wmsg"), t("pwShort"), "bad");
+  run($("save"), $("wmsg"), t("saving"), async () => {
+    const r = await call("/api/wifi", { ssid, password });
+    if (r.ok) {
+      closeForm();
+      $("aps").replaceChildren();
+      msg($("wmsg"), t("savedConnecting", ssid), "ok");
+    }
+    return r;
+  });
+};
+
+$("saveToken").onclick = () => run($("saveToken"), $("tmsg"), t("verifying"), async () => {
+  const r = await call("/api/tg/token", { token: $("token").value.trim(), api: $("api").value.trim() });
+  if (r.ok) {
+    $("token").value = "";
+    tokenEditing = false;
+    if (document.activeElement) document.activeElement.blur();
+    msg($("tmsg"), t("tokenOk", r.bot, r.user), "ok");
+  }
+  return r;
+});
+
+$("changeToken").onclick = () => {
+  tokenEditing = true;
+  $("tokenForm").hidden = false;
+  $("changeToken").hidden = true;
+  focusField($("token"));
+};
+
+$("saveApi").onclick = () => run($("saveApi"), $("tmsg"), t("apiChecking"), async () => {
+  const r = await call("/api/tg/token", { token: "", api: $("api").value.trim() });
+  if (r.ok) msg($("tmsg"), t("apiOk"), "ok");
+  return r;
+});
+
+$("bind").onclick = () => run($("bind"), $("tmsg"), t("finding"), async () => {
+  const r = await call("/api/tg/bind", {});
+  if (r.ok) msg($("tmsg"), t("bound", r.chat), "ok");
+  return r;
+});
+
+$("saveChat").onclick = () => run($("saveChat"), $("tmsg"), t("saving"), async () => {
+  const r = await call("/api/tg/bind", { chat_id: $("chatId").value.trim() });
+  if (r.ok) msg($("tmsg"), t("chatSaved"), "ok");
+  return r;
+});
+
+$("body").onchange = saveOptions;
+
+$("test").onclick = () => run($("test"), $("tmsg"), t("sending"), async () => {
+  const r = await call("/api/tg/test", {});
+  if (r.ok) msg($("tmsg"), t("sent"), "ok");
+  return r;
+});
+
+$("clearTg").onclick = () => {
+  if (!confirm(t("clearConfirm"))) return;
+  run($("clearTg"), $("tmsg"), t("clearing"), async () => {
+    const r = await call("/api/tg/clear", {});
+    if (r.ok) {
+      $("chatId").value = "";
+      msg($("tmsg"), t("cleared"), "ok");
+    }
+    return r;
+  });
+};
+
+$("done").onclick = async () => {
+  $("done").disabled = true;
+  try { await call("/api/done", {}); } catch (e) {}
+  const main = document.querySelector("main");
+  const h = document.createElement("h1");
+  h.textContent = t("finished");
+  const p = document.createElement("p");
+  p.className = "sub";
+  p.textContent = t("finishedSub");
+  main.replaceChildren(h, p);
+};
+
+applyLang();
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

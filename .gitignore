@@ -1,0 +1,9 @@
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+.DS_Store
+
+# Voice prompts come from an online TTS service with unclear redistribution terms;
+# generate them locally with tools/gen_wx_voice.py.
+/assets/music/*.pcm
