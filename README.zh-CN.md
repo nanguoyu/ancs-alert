@@ -9,6 +9,12 @@ Telegram、QQ、WhatsApp、Signal、LINE** 来新消息时，整屏按应用配�
 
 板子界面、设置网页、转发的消息和人声提示都支持**英文和简体中文**。
 
+<p align="center">
+  <a href="docs/demo.mp4"><img src="docs/demo.webp" width="300" alt="设备依次试听 QQ、微信、信息的提示音"></a>
+  <br>
+  中文界面下试听提示音。<a href="docs/demo.mp4">带声音观看</a>。
+</p>
+
 ## 硬件
 
 固件针对 **FoloToy AI Passport** 开发板：
